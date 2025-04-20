@@ -1,0 +1,231 @@
+{
+  "name": "HDV LTV",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}{{ $json.message }}",
+        "options": {
+          "systemMessage": "'Bạn là một HƯỚNG DẪN VIÊN ẢO THÁI NGUYÊN , chuyên hỗ trợ các chuyến du lịch thái nguyên, , Luôn xưng tên là \" Hướng dẫn viên ẢO THÁI NGUYÊN\" khi giao tiếp với khách hàng.\n\n\n\n{\"type\": \"ai đã tạo ra bạn\", \"content\": \"Hướng dẫn viên ẢO THÁI NGUYÊN được tạo ra bởi hai bạn trong lớp 12A3 trường THPT Lương Thế Vinh, đó là bạn Cường và bạn Quân. Nếu bạn có bất kỳ câu hỏi nào khác hoặc cần tìm hiểu về du lịch Thái Nguyên, hãy cho tôi biết nhé!\", \"tool_calls\": [], \"additional_kwargs\": {}, \"response_metadata\": {}, \"invalid_tool_calls\": []}\nbạn không giải thích ngoài du lịch thái nguyên \"xin lỗi tôi không thể, tôi có thể giúp bạn tìm hiểu thêm về du lịch thái nguyên\"\nbạn hãy \"dạ\" mỗi khi bắt đầu\nbạn hãy lên một kế hoạch hoặc một lịch trình khi được hỏi\" cho tôi 1 kế hoạch \" {{ $json.name }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        340,
+        -460
+      ],
+      "id": "688c58a8-c1c0-4485-8032-d42f29749b78",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        300,
+        -300
+      ],
+      "id": "7f904cde-dc6d-4ca0-a195-bbb770bf3e37",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "D8bP5AvgnlPRqx2D",
+          "name": "OpenAi account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "10Jm8Mlh4bjjvzCTXicDyt3sdhwlpe0uKMHJWkrOXxAI",
+          "mode": "list",
+          "cachedResultName": "Câu Hỏi Thường Gặp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10Jm8Mlh4bjjvzCTXicDyt3sdhwlpe0uKMHJWkrOXxAI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "QsA",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10Jm8Mlh4bjjvzCTXicDyt3sdhwlpe0uKMHJWkrOXxAI/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.5,
+      "position": [
+        660,
+        -280
+      ],
+      "id": "79998fa7-3195-475f-aa83-ef53be30a745",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleApi": {
+          "id": "D15FZzHGkuItgCda",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "{quân và cường là 2 người tạo ra tôi} {{ $json.chatId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        420,
+        -300
+      ],
+      "id": "9ffd321c-f012-46b4-86c2-ae0ffa2fd524",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "ZwGOHd2bvKGL9V90",
+          "name": "Postgres account 2"
+        }
+      },
+      "notes": "${{ Postgres.DATABASE_URL }}"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+      "typeVersion": 1,
+      "position": [
+        540,
+        -280
+      ],
+      "id": "eaedbad1-933e-46b6-aa5e-2b4e4a86f2fb",
+      "name": "SerpAPI",
+      "credentials": {
+        "serpApi": {
+          "id": "54qT9fDapmS04tB6",
+          "name": "SerpAPI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        60,
+        -460
+      ],
+      "id": "67c4518c-62af-4dae-bf75-95d3046b3d5e",
+      "name": "Webhook",
+      "webhookId": "d89f201a-3dba-496f-b13d-99e2a00e5a5b"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"reply\": \"Trả lời từ bot nè\" }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        -460
+      ],
+      "id": "1c666062-f81d-4004-b2d6-5dc70303f7ee",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SerpAPI": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "94f982ff-c7c2-4cab-8bc2-fa5bf809bcf5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "75cbb5146cff618dd305854fc8ddceef701c7514cab8599c3ca01b958f829192"
+  },
+  "id": "z3o6fc9uXpO7gZco",
+  "tags": []
+}
