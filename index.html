@@ -1,0 +1,253 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .gradient-bg {
+            background: linear-gradient(to right, #3b82f6, #8b5cf6);
+        }
+        .glow {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col min-h-screen font-sans">
+    <!-- Main Container -->
+    <div class="w-full max-w-2xl mx-auto p-4 flex-grow">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">AI Chatbot</h1>
+            <button id="theme-toggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700">
+                <svg id="sun-icon" class="w-6 h-6 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <svg id="moon-icon" class="w-6 h-6 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+            </button>
+        </header>
+
+        <!-- Chat Section -->
+        <div class="glassmorphism p-6 rounded-lg shadow-md">
+            <div id="chat-output" class="h-96 overflow-y-auto mb-4 p-4 bg-gray-200 dark:bg-gray-800 rounded-lg flex flex-col space-y-4">
+                <!-- Initial AI message -->
+                <p class="text-gray-800 dark:text-gray-200 text-center fade-in"></p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <input id="chat-input" type="text" class="flex-1 p-3 rounded-lg bg-gray-300 dark:bg-gray-600 text-black dark:text-white focus:outline-none border-2 border-blue-500 font-sans placeholder-gray-500 dark:placeholder-gray-400" placeholder="Hỏi AI bất cứ điều gì...">
+                <button id="chat-send" class="gradient-bg text-white p-3 rounded-full hover:glow transform transition-all duration-200 active:scale-90 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none">
+                    <svg id="send-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l14-6-6 14-2-6-6-2z" />
+                    </svg>
+                    <svg id="loading-icon" class="w-6 h-6 hidden animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8v2a6 6 0 00-6 6h-2zm16 0a8 8 0 01-8 8v-2a6 6 0 006-6h2z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Travel Guide Section -->
+    <section class="container mx-auto px-4 py-16">
+        <h3 class="text-3xl font-bold text-center mb-8">Hướng Dẫn Du Lịch Thái Nguyên</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h4 class="text-xl font-semibold mb-2">Hồ Núi Cốc</h4>
+                <p class="mb-4">Khám phá hồ nước tuyệt đẹp với cảnh quan thơ mộng, lý tưởng cho các chuyến dã ngoại.</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h4 class="text-xl font-semibold mb-2">ATK Định Hóa</h4>
+                <p class="mb-4">Tham quan di tích lịch sử, nơi ghi dấu những năm tháng hào hùng của dân tộc.</p>
+            </div>
+            <div classđưa tôi đến Hồ Núi Cốc
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h4 class="text-xl font-semibold mb-2">Chè Tân Cương</h4>
+                <p class="mb-4">Thưởng thức hương vị chè xanh nổi tiếng và khám phá các đồi chè bạt ngàn.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-gray-800 py-8">
+        <div class="container mx-auto px-4 text-center">
+            <p>© 2025 AI Travel Guide Thái Nguyên. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        });
+
+        // Load saved theme
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+        }
+
+        // AI Chat Functionality with xAI API
+        const chatInput = document.getElementById('chat-input');
+        const chatSend = document.getElementById('chat-send');
+        const chatOutput = document.getElementById('chat-output');
+        const sendIcon = document.getElementById('send-icon');
+        const loadingIcon = document.getElementById('loading-icon');
+
+        // Replace with your xAI API key
+        const XAI_API_KEY = 'xai-ksq82nOvAiOmtuyuSCTVyhFjQYs5fqTnRKP8mJ5EPs1gWCx6YDlde0jsqQHBgdCOia0GqfyRdZ6tS4ys'; // Thay bằng API key của bạn
+        const API_URL = 'https://api.x.ai/v1/chat/completions';
+
+        // Debug input value
+        chatInput.addEventListener('input', () => {
+            console.log('Input value:', chatInput.value);
+        });
+
+        // Disable send button when input is empty
+        function toggleSendButton() {
+            chatSend.disabled = chatInput.value.trim() === '';
+        }
+
+        chatInput.addEventListener('input', toggleSendButton);
+        toggleSendButton(); // Initial check
+
+        async function sendMessageToXAI(message) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${xai-ksq82nOvAiOmtuyuSCTVyhFjQYs5fqTnRKP8mJ5EPs1gWCx6YDlde0jsqQHBgdCOia0GqfyRdZ6tS4ys}`
+                    },
+                    body: JSON.stringify({
+                        model: 'grok-beta', // Sử dụng model grok-beta
+                        messages: [
+                            { role: 'system', content: 'You are a helpful assistant.' },
+                            { role: 'user', content: message }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 500
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                return data.choices[0].message.content;
+            } catch (error) {
+                console.error('Error calling xAI API:', error);
+                return 'Xin lỗi, đã có lỗi khi kết nối với AI. Vui lòng thử lại!';
+            }
+        }
+
+        chatSend.addEventListener('click', async () => {
+            const message = chatInput.value.trim();
+            if (message) {
+                // Show loading state
+                sendIcon.classList.add('hidden');
+                loadingIcon.classList.remove('hidden');
+                chatSend.disabled = true;
+
+                // Display user message as a chat bubble
+                const userMessage = `
+                    <div class="flex justify-end">
+                        <div class="max-w-xs gradient-bg text-white p-3 rounded-lg shadow-md">
+                            ${message}
+                        </div>
+                    </div>`;
+                chatOutput.innerHTML += userMessage;
+
+                // Call xAI API
+                const aiResponse = await sendMessageToXAI(message);
+                const aiMessage = `
+                    <div class="flex justify-start fade-in">
+                        <p class="max-w-xs text-gray-800 dark:text-gray-200">${aiResponse}</p>
+                    </div>`;
+                chatOutput.innerHTML += aiMessage;
+
+                // Clear input, hide loading state, and scroll to bottom
+                chatInput.value = '';
+                sendIcon.classList.remove('hidden');
+                loadingIcon.classList.add('hidden');
+                chatOutput.scrollTop = chatOutput.scrollHeight;
+                toggleSendButton(); // Update button state
+            }
+        });
+
+        // Allow sending message with Enter key
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !chatSend.disabled) {
+                chatSend.click();
+            }
+        });
+    </script>
+</body>
+</html>
